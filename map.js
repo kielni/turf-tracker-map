@@ -90,7 +90,42 @@ const drawMap = function(precincts, csv) {
         .style('opacity', 0);
     });
 
-    console.log('done');
+  // legend from https://bl.ocks.org/OliverWS/c1f4c521cae9f379c95ace6edc1c5e30
+  const legendWidth = 300;
+  const x = d3.scaleLinear()
+    .domain([0, 100])
+    .rangeRound([width - 50 - legendWidth, width - 50]);
+  const legend = svg.append('g')
+    .attr('class', 'key')
+    .attr('transform', 'translate(0,40)');
+
+  const bars = [];
+  for (let i = 0; i < 100; i++) {
+    bars.push(i);
+  }
+  legend.selectAll('rect')
+    .data(bars)
+    .enter().append('rect')
+      .attr('height', 8)
+      .attr('x', d => x(d))
+      .attr('width', legendWidth / bars.length)
+      .attr('fill', d => color(d/100.0));
+
+  legend.append('text')
+    .attr('class', 'caption')
+    .attr('x', x.range()[0])
+    .attr('y', -6)
+    .attr('fill', '#000')
+    .attr('text-anchor', 'start')
+    .attr('font-weight', 'bold')
+    .text('Canvassed');
+
+  legend.call(d3.axisBottom(x)
+      .tickSize(13)
+      .tickFormat(x => `${x}%`)
+      .tickValues(x.ticks(11)))
+    .select('.domain')
+      .remove();
 };
 
 d3.queue()
