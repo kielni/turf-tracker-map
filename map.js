@@ -50,6 +50,15 @@ const drawMap = function(precincts, csv) {
   // https://github.com/d3/d3-scale-chromatic
   const color = d3.scaleSequential(d3.interpolateBlues);
 
+  const tooltip = d3.select('body').append('div')
+    .attr('class', 'map-tooltip')
+    .style('opacity', 0);
+
+  geojson.features.forEach((feature) => {
+    // numeric only
+    feature.properties.key = feature.properties.PrecinctP.replace(/[^\d]/g, '');
+  });
+
   const map = svg.append('g')
     .selectAll('path')
     .data(geojson.features)
@@ -58,8 +67,7 @@ const drawMap = function(precincts, csv) {
     .attr('d', geoGenerator)
     .attr('id', (d) => `p${d.properties.PrecinctP}`)
     .attr('fill', (d) => {
-      // numeric only
-      const key = d.properties.PrecinctP.replace(/[^\d]/g, '');
+      const key = d.properties.key;
       //console.log(`${d.properties.PrecinctP}\t${byId[key]}\t${color(key)}`);
       if (!(key in byId)) {
         console.log(`${key} missing`);
@@ -67,6 +75,21 @@ const drawMap = function(precincts, csv) {
       return key in byId ? color(byId[key]) : '#ddd';
     })
     .attr('stroke', '#000')
+    .on('mouseover', (d) => {
+      const key = d.properties.key;
+      tooltip.transition()
+        .duration(200)
+        .style('opacity', .95);
+      tooltip.html(`${d.properties.PrecinctP}: ${Math.round(byId[key] * 100)}%`)
+        .style('left', (d3.event.pageX) + 'px')
+        .style('top', (d3.event.pageY - 28) + 'px');
+    })
+    .on('mouseout', (d) => {
+      tooltip.transition()
+        .duration(500)
+        .style('opacity', 0);
+    });
+
     console.log('done');
 };
 
