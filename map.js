@@ -60,6 +60,7 @@ const drawMap = function(precincts, csv) {
   });
 
   const map = svg.append('g')
+    .attr('class', 'precincts')
     .selectAll('path')
     .data(geojson.features)
     .enter()
@@ -83,8 +84,12 @@ const drawMap = function(precincts, csv) {
       tooltip.html(`${d.properties.PrecinctP}: ${Math.round(byId[key] * 100)}%`)
         .style('left', (d3.event.pageX) + 'px')
         .style('top', (d3.event.pageY - 28) + 'px');
+      d3.select(`#p${d.properties.PrecinctP}`)
+        .attr('stroke', '#0000ff')
     })
     .on('mouseout', (d) => {
+      d3.selectAll('.precincts path')
+        .attr('stroke', '#000')
       tooltip.transition()
         .duration(500)
         .style('opacity', 0);
