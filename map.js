@@ -1,3 +1,5 @@
+var debug;
+
 const drawMap = function(precincts, csv) {
   const container = d3.select('#map');
   const margin = 20;
@@ -45,10 +47,10 @@ const drawMap = function(precincts, csv) {
       console.error('error parsing row', row, e);
     }
   });
-  console.log(byId);
+  debug = byId;
 
   // https://github.com/d3/d3-scale-chromatic
-  const color = d3.scaleSequential(d3.interpolateBlues);
+  const color = d3.scaleSequential(d3.interpolateGnBu);
 
   const tooltip = d3.select('body').append('div')
     .attr('class', 'map-tooltip')
@@ -66,30 +68,33 @@ const drawMap = function(precincts, csv) {
     .enter()
     .append('path')
     .attr('d', geoGenerator)
-    .attr('id', (d) => `p${d.properties.PrecinctP}`)
+    .attr('id', (d) => `p${d.properties.PRECINCT}`)
     .attr('fill', (d) => {
       const key = d.properties.key;
-      //console.log(`${d.properties.PrecinctP}\t${byId[key]}\t${color(key)}`);
+      //console.log(`${d.properties.PRECINCT}\t${byId[key]}\t${color(key)}`);
       if (!(key in byId)) {
         console.log(`${key} missing`);
       }
-      return key in byId ? color(byId[key]) : '#ddd';
+      return key in byId ? color(byId[key]) : '#eee';
     })
     .attr('stroke', '#000')
     .on('mouseover', (d) => {
       const key = d.properties.key;
+      const pct = key in byId ? `${Math.round(byId[key] * 100)}%` : 'N/A'
       tooltip.transition()
         .duration(200)
         .style('opacity', .95);
-      tooltip.html(`${d.properties.PrecinctP}: ${Math.round(byId[key] * 100)}%`)
+      tooltip.html(`${d.properties.PRECINCT}: ${pct}`)
         .style('left', (d3.event.pageX) + 'px')
         .style('top', (d3.event.pageY - 28) + 'px');
-      d3.select(`#p${d.properties.PrecinctP}`)
+      d3.select(`#p${d.properties.PRECINCT}`)
         .attr('stroke', '#0000ff')
+        .attr('stroke-width', 2);
     })
     .on('mouseout', (d) => {
       d3.selectAll('.precincts path')
         .attr('stroke', '#000')
+        .attr('stroke-width', 1)
       tooltip.transition()
         .duration(500)
         .style('opacity', 0);
@@ -134,7 +139,7 @@ const drawMap = function(precincts, csv) {
 };
 
 d3.queue()
-  .defer(d3.json, 'data/topo_precincts.json')  // precincts in topoJSON
+  .defer(d3.json, 'data/topo-precincts.json')  // precincts in topoJSON
   .defer(d3.csv, 'data/sample.csv')  // Id,City,Total
   .await(function (err, geojson, csv) {
     if (err) {
