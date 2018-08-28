@@ -1,5 +1,17 @@
 var debug;
 
+/*
+  TODO:
+  - switch to d3 v5 (with promises)
+  - start download of geodata; save promise
+  - add promise for sheet data on auth success
+  - on Promise.all, draw map
+  - create config: topo URL, Google API key, client id, sheet id, sheet range, feature id (PrecinctP, PRECINCT), legend labe,
+  - update draw map to use config
+  - update Google auth to use config
+  - set up sample sheets: post-process sheet data: replace 30, to value
+
+*/
 const drawMap = function(precincts, csv) {
   const container = d3.select('#map');
   const margin = 20;
@@ -138,6 +150,54 @@ const drawMap = function(precincts, csv) {
       .remove();
 };
 
+/***
+  Google auth for Sheets API
+  https://developers.google.com/sheets/api/quickstart/js
+***/
+const loadSheetsData = function() {
+  gapi.client.sheets.spreadsheets.values.get({
+    spreadsheetId: '1Flx8mqYV6Iuh0UOvKzeLVGqXjNlX9HE29ogOn9nU4c4',
+    range: 'map_data!B1:C',
+  }).then(function(response) {
+    console.log('response=', response);
+  });
+}
+
+const updateSigninStatus = function(isSignedIn) {
+  if (isSignedIn) {
+    $('#googleAuthorize').hide();
+    $('#googleSignout').show();
+    loadSheetsData();
+  } else {
+    $('#googleAuthorize').show();
+    $('#googleSignout').hide();
+  }
+}
+
+const initGoogleClient = function() {
+  console.log('initGoogleClient');
+  gapi.client.init({
+    apiKey: 'AIzaSyBbFRkJQyz2Vq7p6cMM8TxbTxJjhlKAGMM',
+    clientId: '347410550467-7dln585kevabrvj7hkmu6mronb40hvof.apps.googleusercontent.com',
+    discoveryDocs: ['https://sheets.googleapis.com/$discovery/rest?version=v4'],
+    scope: 'https://www.googleapis.com/auth/spreadsheets.readonly'
+  }).then(function () {
+    gapi.auth2.getAuthInstance().isSignedIn.listen(updateSigninStatus);
+
+    // Handle the initial sign-in state.
+    updateSigninStatus(gapi.auth2.getAuthInstance().isSignedIn.get());
+    $('#googleAuthorize').on('click', function() {
+      gapi.auth2.getAuthInstance().signIn();
+    });
+    $('#googleSignout').on('click', function() {
+      gapi.auth2.getAuthInstance().signOut();
+    });
+  });
+}
+
+/***
+  load data
+***/
 d3.queue()
   .defer(d3.json, 'data/topo-precincts.json')  // precincts in topoJSON
   .defer(d3.csv, 'data/sample.csv')  // Id,City,Total
