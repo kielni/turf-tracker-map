@@ -10,10 +10,16 @@ const CONFIG = {
     sheetId: '1PBW_ndyLJl70TCJ3i00iQGYoo0it28qKvsA2_BSMbWY',
     sheetRange: 'map_data!B1:C',
   },
+
+  ca45: {
+    sheetId: '1Flx8mqYV6Iuh0UOvKzeLVGqXjNlX9HE29ogOn9nU4c4',
+    sheetRange: 'map_data!B1:C',
+  },
 };
 
-const configKey = 'default';  // TODO: from URL
-const config = CONFIG[configKey];
+const match = window.location.href.match(new RegExp(/v=(\w+)/));
+const configKey = match && CONFIG[match[1]] ? match[1] : 'default';
+const config = Object.assign(CONFIG.default, CONFIG[configKey]);
 
 const dataPromises = [];
 
@@ -150,7 +156,7 @@ const processData = function(data) {
   sheet.result.values.map((row) => {
     // id, value
     try {
-      values[row[0]] = Number.parseFloat(row.Total.replace('%', '')) / 100;
+      values[row[0]] = Number.parseFloat(row[1].replace('%', '')) / 100;
     } catch (e) {
       console.error('error parsing row', row);
     }
