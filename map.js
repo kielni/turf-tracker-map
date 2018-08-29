@@ -134,7 +134,7 @@ const drawMap = function(topo, values) {
     .attr('y', -6)
     .attr('fill', '#000')
     .attr('text-anchor', 'start')
-    .attr('font-weight', 'bold')
+    .attr('font-weight', 'bold');
 
   legend.call(d3.axisBottom(x)
       .tickSize(13)
@@ -150,7 +150,7 @@ const processData = function(data) {
   sheet.result.values.map((row) => {
     // id, value
     try {
-      values[row[0]] = Number.parseFloat(row[1].replace('%', '')) / 100;
+      values[row[0]] = Number.parseFloat(row.Total.replace('%', '')) / 100;
     } catch (e) {
       console.error('error parsing row', row);
     }
@@ -173,6 +173,7 @@ const loadSheetsData = function() {
 };
 
 const updateSigninStatus = function(isSignedIn) {
+  $('.error').hide();
   if (isSignedIn) {
     $('#googleAuthorize').hide();
     $('#googleSignout').show();
@@ -200,5 +201,24 @@ const initGoogleClient = function() {
     $('#googleSignout').on('click', function() {
       gapi.auth2.getAuthInstance().signOut();
     });
+  }).catch(function (e) {
+    $('.error').text(`error: ${e.details}`);
+    $('.error').show();
   });
 };
+
+/***
+  load data
+***/
+/*
+d3.queue()
+  .defer(d3.json, 'data/topo-precincts.json')  // precincts in topoJSON
+  .defer(d3.csv, 'data/sample.csv')  // Id,City,Total
+  .await(function (err, geojson, csv) {
+    if (err) {
+      console.error(err);
+      return;
+    }
+    drawMap(geojson, csv);
+  });
+*/

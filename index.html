@@ -32,7 +32,7 @@
         float: left;
         padding: 10px;
       }
-      .auth button {
+      .auth button, .auth .error {
         display: none;
         margin-top: 5px;
       }
@@ -48,6 +48,7 @@
         </div>
         <button class="btn btn-primary btn-sm" id="googleAuthorize">Authorize</button>
       </div>
+      <div class="alert alert-danger error"></div>
     </div>
     <div id="map"></div>
     <script src="https://code.jquery.com/jquery-3.3.1.slim.min.js"></script>
