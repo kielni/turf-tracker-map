@@ -5,8 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no">
 
     <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/4.0.0/css/bootstrap.min.css" integrity="sha384-Gn5384xqQ1aoWXA+058RXPxPg6fy4IWvTNh0E263XmFcJlSAwiGgFAW/dAiS6JXm" crossorigin="anonymous">
-    <script src="https://d3js.org/d3.v4.min.js"></script>
-    <script src="https://d3js.org/d3-scale-chromatic.v1.min.js"></script>
+    <script src="https://d3js.org/d3.v5.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/topojson/1.6.19/topojson.min.js"></script>
 
     <title>Turf tracker</title>
@@ -35,13 +34,20 @@
       }
       .auth button {
         display: none;
+        margin-top: 5px;
       }
     </style>
   </head>
   <body>
     <div class="auth">
-      <button class="btn btn-primary" id="googleAuthorize">Authorize</button>
-      <button class="btn btn-primary" id="googleSignout">Sign out</button>
+      <button class="btn btn-primary btn-sm" id="googleSignout">Sign out</button>
+      <div class="alert alert-primary" role="alert">
+        <div>
+          Sign in with your Google account to view the map.<br>
+          Third-party cookies must be enabled for Google Auth.
+        </div>
+        <button class="btn btn-primary btn-sm" id="googleAuthorize">Authorize</button>
+      </div>
     </div>
     <div id="map"></div>
     <script src="https://code.jquery.com/jquery-3.3.1.slim.min.js"></script>

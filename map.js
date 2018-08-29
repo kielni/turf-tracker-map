@@ -1,24 +1,44 @@
 var debug;
 
+const CONFIG = {
+  default: {
+    topoURL: 'data/topo-precincts.json',
+    topoObjects: 'precincts',
+    featureKey: 'PRECINCT',
+    googleApiKey: 'AIzaSyBbFRkJQyz2Vq7p6cMM8TxbTxJjhlKAGMM',
+    googleClientId: '347410550467-7dln585kevabrvj7hkmu6mronb40hvof.apps.googleusercontent.com',
+    sheetId: '1PBW_ndyLJl70TCJ3i00iQGYoo0it28qKvsA2_BSMbWY',
+    sheetRange: 'map_data!B1:C',
+  },
+};
+
+const configKey = 'default';  // TODO: from URL
+const config = CONFIG[configKey];
+
+const dataPromises = [];
+
+/*
+  - start loading geo data immediately
+  - do Google Auth if needed
+  - load sheet data for Sheets API
+  - when both data sets loaded, draw map
+*/
+
+// start loading geodata
+dataPromises.push(d3.json(config.topoURL));
+
 /*
   TODO:
-  - switch to d3 v5 (with promises)
-  - start download of geodata; save promise
-  - add promise for sheet data on auth success
-  - on Promise.all, draw map
-  - create config: topo URL, Google API key, client id, sheet id, sheet range, feature id (PrecinctP, PRECINCT), legend labe,
   - update draw map to use config
-  - update Google auth to use config
-  - set up sample sheets: post-process sheet data: replace 30, to value
-
+  - update Google auth to use config (feature id (PrecinctP, PRECINCT), legend)
 */
-const drawMap = function(precincts, csv) {
+const drawMap = function(topo, values) {
   const container = d3.select('#map');
   const margin = 20;
   const width = window.innerWidth - (margin * 2);
   const height = window.innerHeight - (margin * 2);
 
-  const geojson = topojson.feature(precincts, precincts.objects.precincts);
+  const geojson = topojson.feature(topo, topo.objects[config.topoObjects]);
 
   // https://bl.ocks.org/iamkevinv/0a24e9126cd2fa6b283c6f2d774b69a2
   const zoomed = function() {
@@ -42,36 +62,12 @@ const drawMap = function(precincts, csv) {
   const geoGenerator = d3.geoPath()
     .projection(projection);
 
-  const byId = {}
-  const percents = [];
-  csv.forEach((row) => {
-    // "3059047": remove 30 prefix
-    const key = row.Id.replace('30', '')
-    if (!key || key === 'Total') {
-      return;
-    }
-    // "80.95%": to decimal percentage
-    try {
-      const val = Number.parseFloat(row.Total.replace('%', '')) / 100;
-      percents.push(val);
-      byId[key] = val;
-    } catch (e) {
-      console.error('error parsing row', row, e);
-    }
-  });
-  debug = byId;
-
   // https://github.com/d3/d3-scale-chromatic
   const color = d3.scaleSequential(d3.interpolateGnBu);
 
   const tooltip = d3.select('body').append('div')
     .attr('class', 'map-tooltip')
     .style('opacity', 0);
-
-  geojson.features.forEach((feature) => {
-    // numeric only
-    feature.properties.key = feature.properties.PrecinctP.replace(/[^\d]/g, '');
-  });
 
   const map = svg.append('g')
     .attr('class', 'precincts')
@@ -80,26 +76,25 @@ const drawMap = function(precincts, csv) {
     .enter()
     .append('path')
     .attr('d', geoGenerator)
-    .attr('id', (d) => `p${d.properties.PRECINCT}`)
+    .attr('id', (d) => `p${d.properties[config.featureKey]}`)
     .attr('fill', (d) => {
-      const key = d.properties.key;
-      //console.log(`${d.properties.PRECINCT}\t${byId[key]}\t${color(key)}`);
-      if (!(key in byId)) {
+      const key = d.properties[config.featureKey];
+      if (!(key in values)) {
         console.log(`${key} missing`);
       }
-      return key in byId ? color(byId[key]) : '#eee';
+      return key in values ? color(values[key]) : '#eee';
     })
     .attr('stroke', '#000')
     .on('mouseover', (d) => {
-      const key = d.properties.key;
-      const pct = key in byId ? `${Math.round(byId[key] * 100)}%` : 'N/A'
+      const key = d.properties[config.featureKey];
+      const pct = key in values ? `${Math.round(values[key] * 100)}%` : 'N/A'
       tooltip.transition()
         .duration(200)
         .style('opacity', .95);
-      tooltip.html(`${d.properties.PRECINCT}: ${pct}`)
+      tooltip.html(`${key}: ${pct}`)
         .style('left', (d3.event.pageX) + 'px')
         .style('top', (d3.event.pageY - 28) + 'px');
-      d3.select(`#p${d.properties.PRECINCT}`)
+      d3.select(`#p${key}`)
         .attr('stroke', '#0000ff')
         .attr('stroke-width', 2);
     })
@@ -140,7 +135,6 @@ const drawMap = function(precincts, csv) {
     .attr('fill', '#000')
     .attr('text-anchor', 'start')
     .attr('font-weight', 'bold')
-    .text('Canvassed');
 
   legend.call(d3.axisBottom(x)
       .tickSize(13)
@@ -150,41 +144,55 @@ const drawMap = function(precincts, csv) {
       .remove();
 };
 
+const processData = function(data) {
+  const [geojson, sheet] = data;
+  const values = {};
+  sheet.result.values.map((row) => {
+    // id, value
+    try {
+      values[row[0]] = Number.parseFloat(row[1].replace('%', '')) / 100;
+    } catch (e) {
+      console.error('error parsing row', row);
+    }
+  });
+  debug = values;
+  drawMap(geojson, values);
+};
+
 /***
   Google auth for Sheets API
   https://developers.google.com/sheets/api/quickstart/js
 ***/
+
 const loadSheetsData = function() {
-  gapi.client.sheets.spreadsheets.values.get({
-    spreadsheetId: '1Flx8mqYV6Iuh0UOvKzeLVGqXjNlX9HE29ogOn9nU4c4',
-    range: 'map_data!B1:C',
-  }).then(function(response) {
-    console.log('response=', response);
-  });
-}
+  dataPromises.push(gapi.client.sheets.spreadsheets.values.get({
+    spreadsheetId: config.sheetId,
+    range: config.sheetRange,
+  }));
+  Promise.all(dataPromises).then(processData);
+};
 
 const updateSigninStatus = function(isSignedIn) {
   if (isSignedIn) {
     $('#googleAuthorize').hide();
     $('#googleSignout').show();
+    $('.alert').hide()
     loadSheetsData();
   } else {
     $('#googleAuthorize').show();
     $('#googleSignout').hide();
+    $('.alert').show()
   }
-}
+};
 
 const initGoogleClient = function() {
-  console.log('initGoogleClient');
   gapi.client.init({
-    apiKey: 'AIzaSyBbFRkJQyz2Vq7p6cMM8TxbTxJjhlKAGMM',
-    clientId: '347410550467-7dln585kevabrvj7hkmu6mronb40hvof.apps.googleusercontent.com',
+    apiKey: config.googleApiKey,
+    clientId: config.googleClientId,
     discoveryDocs: ['https://sheets.googleapis.com/$discovery/rest?version=v4'],
     scope: 'https://www.googleapis.com/auth/spreadsheets.readonly'
   }).then(function () {
     gapi.auth2.getAuthInstance().isSignedIn.listen(updateSigninStatus);
-
-    // Handle the initial sign-in state.
     updateSigninStatus(gapi.auth2.getAuthInstance().isSignedIn.get());
     $('#googleAuthorize').on('click', function() {
       gapi.auth2.getAuthInstance().signIn();
@@ -193,18 +201,4 @@ const initGoogleClient = function() {
       gapi.auth2.getAuthInstance().signOut();
     });
   });
-}
-
-/***
-  load data
-***/
-d3.queue()
-  .defer(d3.json, 'data/topo-precincts.json')  // precincts in topoJSON
-  .defer(d3.csv, 'data/sample.csv')  // Id,City,Total
-  .await(function (err, geojson, csv) {
-    if (err) {
-      console.error(err);
-      return;
-    }
-    drawMap(geojson, csv);
-  });
+};
