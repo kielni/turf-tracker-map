@@ -254,7 +254,11 @@ const loadGoogleData = function() {
     spreadsheetId: config.sheetId,
     range: config.sheetRange,
   }));
-  Promise.all(dataPromises).then(processData);
+  Promise.all(dataPromises).then(processData).catch((e) => {
+    $('.error .alert').text(`error: ${e.result.error.message}`);
+    $('.error').show();
+    $('.error .alert').show();
+  });
 };
 
 const updateSigninStatus = function(isSignedIn) {
