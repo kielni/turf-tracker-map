@@ -11,13 +11,13 @@
     <title>Turf tracker</title>
     <style>
       svg {
-        margin: 10px;
+        margin: -45px 10px 10px 10px;
         cursor: pointer;
       }
       div.map-tooltip {
         position: absolute;
         text-align: center;
-        width: 90px;
+        width: 120px;
         height: 20px;
         padding: 2px;
         background: #fff;
@@ -36,6 +36,9 @@
         display: none;
         margin-top: 5px;
       }
+      .precincts path {
+        vector-effect: non-scaling-stroke;
+      }
     </style>
   </head>
   <body>
@@ -48,7 +51,9 @@
         </div>
         <button class="btn btn-primary btn-sm" id="googleAuthorize">Authorize</button>
       </div>
-      <div class="alert alert-danger error"></div>
+      <div class="error">
+        <div class="alert alert-danger"></div>
+      </div>
     </div>
     <div id="map"></div>
     <script src="https://code.jquery.com/jquery-3.3.1.slim.min.js"></script>
