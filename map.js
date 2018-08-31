@@ -1,40 +1,5 @@
 var debug;
 
-const CONFIG = {
-  default: {
-    topoURL: 'data/topo-precincts.json',
-    topoObjects: 'precincts',
-    featureKey: 'PRECINCT',
-    googleApiKey: 'AIzaSyBbFRkJQyz2Vq7p6cMM8TxbTxJjhlKAGMM',
-    googleClientId: '347410550467-7dln585kevabrvj7hkmu6mronb40hvof.apps.googleusercontent.com',
-    sheetId: '1PBW_ndyLJl70TCJ3i00iQGYoo0it28qKvsA2_BSMbWY',
-    sheetRange: 'map_data!B1:C',
-    scaleType: 'numeric',
-    // California Albers https://bl.ocks.org/mbostock/5562380
-    projection: d3.geoAlbers()
-      .parallels([34, 40.5])
-      .rotate([120, 0]),
-  },
-
-  ca45: {
-    sheetId: '1Flx8mqYV6Iuh0UOvKzeLVGqXjNlX9HE29ogOn9nU4c4',
-    sheetRange: 'map_data!B1:C',
-  },
-
-  az: {
-    topoDocId: '1LNc8RBq3g5ONgeuoKHU8pa1TFTC39It5',
-    topoObjects: 'az_2018_precincts',
-    topoURL: null,
-    //geoDocId: '1BAURFHwGlWJyatOOBl-sA1MaEpXmkldP',
-    featureKey: 'GISPRECINC',
-    sheetId: '1Y4tnSa0Zx8tWRPzoNGnPgMazXE9CCB5CywjaABKJDI0',
-    sheetRange: 'az_turf_map!A2:C',
-    scaleType: 'ordinal',
-    // already projected
-    projection: d3.geoIdentity()
-  }
-};
-
 const match = window.location.href.match(new RegExp(/v=(\w+)/));
 const configKey = match && CONFIG[match[1]] ? match[1] : 'default';
 const config = Object.assign(CONFIG.default, CONFIG[configKey]);
@@ -298,19 +263,3 @@ const initGoogleClient = function() {
     $('.error').show();
   });
 };
-
-/***
-  load data
-***/
-/*
-d3.queue()
-  .defer(d3.json, 'data/topo-precincts.json')  // precincts in topoJSON
-  .defer(d3.csv, 'data/sample.csv')  // Id,City,Total
-  .await(function (err, geojson, csv) {
-    if (err) {
-      console.error(err);
-      return;
-    }
-    drawMap(geojson, csv);
-  });
-*/
