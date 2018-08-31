@@ -28,34 +28,49 @@
         color: #fff;
         background-color: #333;
       }
-      .auth {
-        float: left;
-        padding: 10px;
-      }
-      .auth button, .auth .error {
-        display: none;
-        margin-top: 5px;
-      }
       .precincts path {
         vector-effect: non-scaling-stroke;
+      }
+      .sign-in button, .sign-out, .error {
+        display: none;
+      }
+      .sign-in button {
+        margin-top: 10px;
+      }
+      .auth.sign-in {
+        margin-top: 100px;
+      }
+      .auth.sign-in, .error {
+        width: 400px;
+        margin-left: auto;
+        margin-right: auto;
+      }
+      .auth.sign-out {
+        position: absolute;
+        top: 10px;
+        left: 5px;
       }
     </style>
   </head>
   <body>
-    <div class="auth">
-      <button class="btn btn-primary btn-sm" id="googleSignout">Sign out</button>
+    <div id="map"></div>
+
+    <div class="auth sign-in">
       <div class="alert alert-primary" role="alert">
         <div>
-          Sign in with your Google account to view the map.<br>
+          Sign in with your Google account to view the map.
           Third-party cookies must be enabled for Google Auth.
         </div>
         <button class="btn btn-primary btn-sm" id="googleAuthorize">Authorize</button>
       </div>
-      <div class="error">
-        <div class="alert alert-danger"></div>
-      </div>
     </div>
-    <div id="map"></div>
+    <div class="error">
+      <div class="alert alert-danger"></div>
+    </div>
+    <div class="auth sign-out">
+      <button class="btn btn-warning btn-sm" id="googleSignout">Sign out</button>
+    </div>
+
     <script src="https://code.jquery.com/jquery-3.3.1.slim.min.js"></script>
     <script src="config.js"></script>
     <script src="map.js"></script>

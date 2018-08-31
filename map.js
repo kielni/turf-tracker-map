@@ -220,6 +220,7 @@ const loadGoogleData = function() {
     range: config.sheetRange,
   }));
   Promise.all(dataPromises).then(processData).catch((e) => {
+    console.error(e);
     $('.error .alert').text(`error: ${e.result.error.message}`);
     $('.error').show();
     $('.error .alert').show();
@@ -229,14 +230,14 @@ const loadGoogleData = function() {
 const updateSigninStatus = function(isSignedIn) {
   $('.error').hide();
   if (isSignedIn) {
-    $('#googleAuthorize').hide();
-    $('#googleSignout').show();
-    $('.alert').hide()
+    $('.sign-in').hide();
+    $('.sign-out').show();
     loadGoogleData();
   } else {
-    $('#googleAuthorize').show();
-    $('#googleSignout').hide();
-    $('.alert').show()
+    $('#map').empty();
+    $('.sign-in').show();
+    $('.sign-in button').show();
+    $('.sign-out').hide();
   }
 };
 
@@ -259,6 +260,7 @@ const initGoogleClient = function() {
       gapi.auth2.getAuthInstance().signOut();
     });
   }).catch(function (e) {
+    console.error(e);
     $('.error .alert').text(`error: ${e.details}`);
     $('.error').show();
   });
