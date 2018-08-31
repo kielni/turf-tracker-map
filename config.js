@@ -25,11 +25,11 @@ const CONFIG = {
   },
 
   az: {
-    topoDocId: '1LNc8RBq3g5ONgeuoKHU8pa1TFTC39It5',
+    topoDocId: '1o-iX6TDqzaZhtm4xUFSnXWgZQvey8XKC',
     topoObjects: 'az_2018_precincts',
     topoURL: null,
     featureKey: 'GISPRECINC',
-    sheetId: '1Y4tnSa0Zx8tWRPzoNGnPgMazXE9CCB5CywjaABKJDI0',
+    sheetId: '1YMMSTUieuSbCIfR-Zrn6J8b5uf-ebYELe6H89h_yjk8',
     sheetRange: 'az_turf_map!A2:C',
     scaleType: 'ordinal',
     // already projected
