@@ -32,7 +32,8 @@ const CONFIG = {
     sheetId: '1YMMSTUieuSbCIfR-Zrn6J8b5uf-ebYELe6H89h_yjk8',
     sheetRange: 'az_turf_map!A2:C',
     scaleType: 'ordinal',
-    // already projected
-    projection: d3.geoIdentity()
+    // already projected, but +y is up in latitude, but svg +y is down
+    // https://github.com/d3/d3-geo/issues/68
+    projection: d3.geoIdentity().reflectY(true)
   }
 };
