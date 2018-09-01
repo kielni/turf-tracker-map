@@ -5,7 +5,7 @@ plus fill color data (from Google Sheet)
 
 Use Google Drive and Sheets permissions to limit access.
 
-http://turf-tracker-map.s3.amazonaws.com/index.html
+https://turf-tracker-map.s3.amazonaws.com/index.html
 
 <img src="map.png" width="800">
 
