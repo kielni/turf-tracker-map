@@ -5,7 +5,7 @@
 
 const CONFIG = {
   default: {
-    topoURL: 'data/topo-precincts.json',
+    topoURL: 'data/ca-45.json',
     topoObjects: 'precincts',
     featureKey: 'PRECINCT',
     googleApiKey: 'AIzaSyBbFRkJQyz2Vq7p6cMM8TxbTxJjhlKAGMM',

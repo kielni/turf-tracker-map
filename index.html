@@ -5,56 +5,13 @@
     <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no">
 
     <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/4.0.0/css/bootstrap.min.css" integrity="sha384-Gn5384xqQ1aoWXA+058RXPxPg6fy4IWvTNh0E263XmFcJlSAwiGgFAW/dAiS6JXm" crossorigin="anonymous">
+    <link rel="stylesheet" href="style.css">
     <script src="https://d3js.org/d3.v5.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/topojson/1.6.19/topojson.min.js"></script>
-
-    <title>Turf tracker</title>
-    <style>
-      svg {
-        margin: 10px;
-        cursor: pointer;
-      }
-      div.map-tooltip {
-        position: absolute;
-        text-align: center;
-        width: 120px;
-        height: 20px;
-        padding: 2px;
-        background: #fff;
-        border: 0px;
-        border-radius: 4px;
-        pointer-events: none;
-        font-size: 12px;
-        color: #fff;
-        background-color: #333;
-      }
-      .precincts path {
-        vector-effect: non-scaling-stroke;
-      }
-      .sign-in button, .sign-out, .error {
-        display: none;
-      }
-      .sign-in button {
-        margin-top: 10px;
-      }
-      .auth.sign-in {
-        margin-top: 100px;
-      }
-      .auth.sign-in, .error {
-        width: 400px;
-        margin-left: auto;
-        margin-right: auto;
-      }
-      .auth.sign-out {
-        position: absolute;
-        top: 10px;
-        left: 5px;
-      }
-    </style>
+    <title>Turf tracker map</title>
   </head>
   <body>
     <div id="map"></div>
-
     <div class="auth sign-in">
       <div class="alert alert-primary" role="alert">
         <div>

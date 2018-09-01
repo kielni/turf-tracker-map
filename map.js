@@ -28,7 +28,7 @@ const cssId  = function(val) {
 
 const drawMap = function(geojson, values, labels) {
   const container = d3.select('#map');
-  const margin = 20;
+  const margin = 10;
   const width = window.innerWidth - (margin * 2);
   const height = window.innerHeight - (margin * 2);
 
@@ -46,7 +46,7 @@ const drawMap = function(geojson, values, labels) {
   svg.call(zoom);
 
   const projection = config.projection
-    .fitSize([width - (2 * margin), height - (2 * margin)], geojson);
+    .fitSize([width, height], geojson);
 
   const geoGenerator = d3.geoPath()
     .projection(projection);
@@ -242,6 +242,7 @@ const updateSigninStatus = function(isSignedIn) {
 };
 
 const initGoogleClient = function() {
+  $('.sign-out').css('left', `${window.innerWidth - 80}px`);
   gapi.client.init({
     apiKey: config.googleApiKey,
     clientId: config.googleClientId,
