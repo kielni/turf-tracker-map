@@ -3,7 +3,7 @@
   default uses OC topo data and a world-viewable sheet containing random data
 */
 
-const CONFIG = {
+const CONFIG = { // eslint-disable-line no-unused-vars
   default: {
     topoURL: 'data/ca-45.json',
     topoObjects: 'precincts',
@@ -34,6 +34,6 @@ const CONFIG = {
     scaleType: 'ordinal',
     // already projected, but +y is up in latitude, but svg +y is down
     // https://github.com/d3/d3-geo/issues/68
-    projection: d3.geoIdentity().reflectY(true)
-  }
+    projection: d3.geoIdentity().reflectY(true),
+  },
 };

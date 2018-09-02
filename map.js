@@ -5,6 +5,7 @@ const configKey = match && CONFIG[match[1]] ? match[1] : 'default';
 const config = Object.assign(CONFIG.default, CONFIG[configKey]);
 
 const dataPromises = [];
+const map = {};
 
 /*
   - start loading geo data immediately if it's a URL
@@ -21,12 +22,123 @@ if (config.topoURL) {
   dataPromises[0] = null; // placeholder
 }
 
-const nonWord = new RegExp('[\\W ]', 'g');
+const nonWord = new RegExp('[\W ]', 'g'); // eslint-disable-line no-useless-escape
 const cssId = function cssId(val) {
   return val.replace(nonWord, '-');
 };
 
-const drawMap = function drawMap(geojson, values, labels) {
+const processGeo = function processGeo(geo) {
+  // parse string data from Google Drive API
+  const data = (config.topoDocId || config.geoDocId) ? JSON.parse(geo.body) : geo;
+
+  // geoDocId is already geoJSON
+  // otherwise convert topoJSON to geoJSON
+  return config.geoDocId ? data : topojson.feature(data, data.objects[config.topoObjects]);
+};
+
+const processSheet = function processSheet(sheet) {
+  const mapping = {};
+
+  sheet.result.values.forEach((row) => {
+    // id, value, [label]
+    const id = row[0] + '';
+    let val = row[1];
+
+    // if it looks like a number, try to parse it
+    if (val.match(/^[\d\.%]+$/)) { // eslint-disable-line no-useless-escape
+      try {
+        val = Number.parseFloat(val.replace('%', '')) / 100;
+      } catch (e) {
+        console.error('error parsing row', row);
+
+        return;
+      }
+    }
+    mapping[id] = { value: val };
+    if (row.length > 2) {
+      mapping[id].label = row[2];
+    }
+  });
+
+  return mapping;
+};
+
+const updateFeatureMapping = function updateFeatureMapping(geo, mapping) {
+  geo.features.forEach(function feature(f) {
+    const key = f.properties[config.featureKey];
+
+    if (key in mapping) {
+      f.properties.ttValue = mapping[key].value;
+      f.properties.ttLabel = mapping[key].label || key;
+    } else {
+      f.properties.ttValue = null;
+      f.properties.ttLabel = key;
+    }
+  });
+};
+
+const updateMap = function updateMap() {
+  const features = map.g.selectAll('path')
+    .data(map.geojson.features, d => d.properties[config.featureKey]);
+  const tooltip = d3.select('body').append('div')
+    .attr('class', 'map-tooltip')
+    .style('opacity', 0);
+
+  /* eslint-disable indent */
+  features.enter().append('path')
+      .attr('d', map.geoGenerator)
+      .attr('id', d => `p${cssId(d.properties[config.featureKey])}`)
+      .attr('stroke', '#000')
+      .attr('stroke-width', 0.5)
+      .on('mouseover', (d) => {
+        let val = d.properties.ttValue !== null ? d.properties.ttValue : 'N/A';
+        const label = d.properties.ttLabel;
+
+        if (config.scaleType === 'numeric' && val !== 'N/A') {
+          val = `${Math.round(val * 100)}%`;
+        } else if (!val) {
+          val = 'N/A';
+        }
+        const html = `${label}: ${val}`;
+
+        tooltip
+          .style('opacity', 0.95)
+          .style('height', html.length > 18 ? '40px' : '20px');
+        tooltip.html(html)
+          .style('left', `${d3.event.pageX}px`)
+          .style('top', `${d3.event.pageY - 28}px`);
+        d3.select(`#p${cssId(d.properties[config.featureKey])}`)
+          .attr('stroke', '#0000ff')
+          .attr('stroke-width', 2);
+      })
+      .on('mouseout', () => {
+        d3.selectAll('.precincts path')
+          .attr('stroke', '#000')
+          .attr('stroke-width', 0.5);
+        tooltip.transition()
+          .duration(500)
+          .style('opacity', 0);
+      })
+    .merge(features)
+      .attr('fill', (d) => {
+        if (d.properties.ttValue !== null) {
+          return map.color(d.properties.ttValue);
+        }
+        console.log(`${d.properties[config.featureKey]} missing`);
+
+        return '#eee';
+      });
+  /* eslint-enable indent */
+};
+
+const colorDomain = function colorDomain() {
+  const values = map.geojson.features.map(f => f.properties.ttValue);
+  const uniq = Array.from(new Set(Object.values(values))).sort();
+
+  return uniq[0] === '' ? uniq.slice(1) : uniq;
+};
+
+const drawMap = function drawMap(geojson) {
   const container = d3.select('#map');
   const margin = 10;
   const width = window.innerWidth - (margin * 2);
@@ -47,17 +159,12 @@ const drawMap = function drawMap(geojson, values, labels) {
 
   const projection = config.projection
     .fitSize([width, height], geojson);
-  const geoGenerator = d3.geoPath()
+
+  map.geojson = geojson;
+  map.geoGenerator = d3.geoPath()
     .projection(projection);
 
-  let color;
-
   if (config.scaleType === 'ordinal') {
-    let uniq = Array.from(new Set(Object.values(values))).sort();
-
-    if (uniq[0] === '') {
-      uniq = uniq.slice(1);
-    }
     // https://jnnnnn.blogspot.com/2017/02/distinct-colours-2.html
     const colors = [
       '#1b70fc', '#faff16', '#d50527', '#158940', '#f898fd', '#24c9d7', '#cb9b64',
@@ -68,68 +175,18 @@ const drawMap = function drawMap(geojson, values, labels) {
       '#a88178', '#5776a9', '#678007', '#fa9316', '#85c070',
     ];
 
-    color = d3.scaleOrdinal()
+    map.color = d3.scaleOrdinal()
       .range(colors)
-      .domain(uniq);
+      .domain(colorDomain(geojson));
   } else {
     // https://github.com/d3/d3-scale-chromatic
-    color = d3.scaleSequential(d3.interpolateGnBu);
+    map.color = d3.scaleSequential(d3.interpolateGnBu);
   }
 
-  const tooltip = d3.select('body').append('div')
-    .attr('class', 'map-tooltip')
-    .style('opacity', 0);
+  map.g = svg.append('g')
+    .attr('class', 'precincts');
 
-  svg.append('g')
-    .attr('class', 'precincts')
-    .selectAll('path')
-    .data(geojson.features)
-    .enter()
-    .append('path')
-    .attr('d', geoGenerator)
-    .attr('id', d => `p${cssId(d.properties[config.featureKey])}`)
-    .attr('fill', (d) => {
-      const key = d.properties[config.featureKey];
-
-      if (!(key in values)) {
-        console.log(`${key} missing`);
-      }
-
-      return key in values ? color(values[key]) : '#eee';
-    })
-    .attr('stroke', '#000')
-    .attr('stroke-width', 0.5)
-    .on('mouseover', (d) => {
-      const key = d.properties[config.featureKey];
-      const label = labels[key] || key;
-      let val = key in values ? values[key] : 'N/A';
-
-      if (config.scaleType === 'numeric' && val !== 'N/A') {
-        val = `${Math.round(val * 100)}%`;
-      } else if (!val) {
-        val = 'N/A';
-      }
-      const html = `${label}: ${val}`;
-
-      tooltip.transition()
-        .duration(200)
-        .style('opacity', 0.95)
-        .style('height', html.length > 18 ? '40px' : '20px');
-      tooltip.html(html)
-        .style('left', `${d3.event.pageX}px`)
-        .style('top', `${d3.event.pageY - 28})px`);
-      d3.select(`#p${cssId(key)}`)
-        .attr('stroke', '#0000ff')
-        .attr('stroke-width', 2);
-    })
-    .on('mouseout', () => {
-      d3.selectAll('.precincts path')
-        .attr('stroke', '#000')
-        .attr('stroke-width', 0.5);
-      tooltip.transition()
-        .duration(500)
-        .style('opacity', 0);
-    });
+  updateMap(geojson);
 
   if (config.scaleType === 'numeric') {
     // https://bl.ocks.org/OliverWS/c1f4c521cae9f379c95ace6edc1c5e30
@@ -152,7 +209,7 @@ const drawMap = function drawMap(geojson, values, labels) {
       .attr('height', 8)
       .attr('x', d => x(d))
       .attr('width', legendWidth / bars.length)
-      .attr('fill', d => color(d / 100.0));
+      .attr('fill', d => map.color(d / 100.0));
 
     legend.append('text')
       .attr('class', 'caption')
@@ -169,43 +226,26 @@ const drawMap = function drawMap(geojson, values, labels) {
         .tickValues(x.ticks(11)))
       .select('.domain')
       .remove();
+
+    $('.refresh').css('left', `${window.innerWidth - 180}px`);
+    $('.refresh').show();
+    $('.refresh').on('click', function refreshSheet() {
+      gapi.client.sheets.spreadsheets.values.get({
+        spreadsheetId: config.sheetId,
+        range: config.sheetRange,
+      }).then(function loadedSheet(sheet) {
+        updateFeatureMapping(map.geojson, processSheet(sheet));
+        updateMap();
+      });
+    });
   }
 };
 
 const processData = function processData(data) {
-  let [geo, sheet] = data; // eslint-disable-line prefer-const
-  const values = {};
-  const labels = {};
+  const geo = processGeo(data[0]);
 
-  if (config.topoDocId || config.geoDocId) {
-    // parse string data from Google Drive API
-    geo = JSON.parse(geo.body);
-  }
-  // geoDocId is already geoJSON
-  // otherwise convert topoJSON to geoJSON
-  const geojson = config.geoDocId ? geo : topojson.feature(geo, geo.objects[config.topoObjects]);
-
-  sheet.result.values.forEach((row) => {
-    // id, value, [label]
-    const id = row[0];
-    let val = row[1];
-
-    // if it looks like a number, try to parse it
-    if (val.match(/^[\\d\\.%]+$/)) {
-      try {
-        val = Number.parseFloat(val.replace('%', '')) / 100;
-      } catch (e) {
-        console.error('error parsing row', row);
-
-        return;
-      }
-    }
-    values[id] = val;
-    if (row.length > 2) {
-      labels[id] = row[2];
-    }
-  });
-  drawMap(geojson, values, labels);
+  updateFeatureMapping(geo, processSheet(data[1]));
+  drawMap(geo);
 };
 
 /* ***
