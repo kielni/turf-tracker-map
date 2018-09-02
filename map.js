@@ -1,4 +1,4 @@
-var debug;
+/* global d3 topojson gapi CONFIG $ */
 
 const match = window.location.href.match(new RegExp(/v=(\w+)/));
 const configKey = match && CONFIG[match[1]] ? match[1] : 'default';
@@ -18,44 +18,44 @@ const dataPromises = [];
 if (config.topoURL) {
   dataPromises.push(d3.json(config.topoURL));
 } else {
-  dataPromises[0] = null;  // placeholder
+  dataPromises[0] = null; // placeholder
 }
 
-const nonWord = new RegExp('[\W ]', 'g');
-const cssId  = function(val) {
+const nonWord = new RegExp('[\\W ]', 'g');
+const cssId = function cssId(val) {
   return val.replace(nonWord, '-');
 };
 
-const drawMap = function(geojson, values, labels) {
+const drawMap = function drawMap(geojson, values, labels) {
   const container = d3.select('#map');
   const margin = 10;
   const width = window.innerWidth - (margin * 2);
   const height = window.innerHeight - (margin * 2);
 
   // https://bl.ocks.org/iamkevinv/0a24e9126cd2fa6b283c6f2d774b69a2
-  const zoomed = function() {
+  const zoomed = function zoomed() {
     d3.select('svg g').attr('transform', d3.event.transform);
-  }
+  };
   const zoom = d3.zoom()
     .scaleExtent([1, 100])
-    .on('zoom', zoomed)
-
+    .on('zoom', zoomed);
   const svg = container.append('svg')
     .attr('height', height)
     .attr('width', width);
+
   svg.call(zoom);
 
   const projection = config.projection
     .fitSize([width, height], geojson);
-
   const geoGenerator = d3.geoPath()
     .projection(projection);
 
   let color;
-  if (config.scaleType == 'ordinal') {
+
+  if (config.scaleType === 'ordinal') {
     let uniq = Array.from(new Set(Object.values(values))).sort();
 
-    if (uniq[0] == '') {
+    if (uniq[0] === '') {
       uniq = uniq.slice(1);
     }
     // https://jnnnnn.blogspot.com/2017/02/distinct-colours-2.html
@@ -65,8 +65,9 @@ const drawMap = function(geojson, values, labels) {
       '#94aa05', '#ac5906', '#82a68d', '#fe6616', '#7a7352', '#f9bc0f', '#b65d66',
       '#07a2e6', '#c091ae', '#8a91a7', '#88fc07', '#ea42fe', '#9e8010', '#10b437',
       '#c281fe', '#f92b75', '#07c99d', '#a946aa', '#bfd544', '#16977e', '#ff6ac8',
-      '#a88178', '#5776a9', '#678007', '#fa9316', '#85c070'
+      '#a88178', '#5776a9', '#678007', '#fa9316', '#85c070',
     ];
+
     color = d3.scaleOrdinal()
       .range(colors)
       .domain(uniq);
@@ -79,7 +80,7 @@ const drawMap = function(geojson, values, labels) {
     .attr('class', 'map-tooltip')
     .style('opacity', 0);
 
-  const map = svg.append('g')
+  svg.append('g')
     .attr('class', 'precincts')
     .selectAll('path')
     .data(geojson.features)
@@ -89,9 +90,11 @@ const drawMap = function(geojson, values, labels) {
     .attr('id', d => `p${cssId(d.properties[config.featureKey])}`)
     .attr('fill', (d) => {
       const key = d.properties[config.featureKey];
+
       if (!(key in values)) {
         console.log(`${key} missing`);
       }
+
       return key in values ? color(values[key]) : '#eee';
     })
     .attr('stroke', '#000')
@@ -101,33 +104,34 @@ const drawMap = function(geojson, values, labels) {
       const label = labels[key] || key;
       let val = key in values ? values[key] : 'N/A';
 
-      if (config.scaleType == 'numeric' && val !== 'N/A') {
+      if (config.scaleType === 'numeric' && val !== 'N/A') {
         val = `${Math.round(val * 100)}%`;
       } else if (!val) {
         val = 'N/A';
       }
       const html = `${label}: ${val}`;
+
       tooltip.transition()
         .duration(200)
-        .style('opacity', .95)
+        .style('opacity', 0.95)
         .style('height', html.length > 18 ? '40px' : '20px');
       tooltip.html(html)
-        .style('left', (d3.event.pageX) + 'px')
-        .style('top', (d3.event.pageY - 28) + 'px');
+        .style('left', `${d3.event.pageX}px`)
+        .style('top', `${d3.event.pageY - 28})px`);
       d3.select(`#p${cssId(key)}`)
         .attr('stroke', '#0000ff')
         .attr('stroke-width', 2);
     })
-    .on('mouseout', (d) => {
+    .on('mouseout', () => {
       d3.selectAll('.precincts path')
         .attr('stroke', '#000')
-        .attr('stroke-width', 0.5)
+        .attr('stroke-width', 0.5);
       tooltip.transition()
         .duration(500)
         .style('opacity', 0);
     });
 
-  if (config.scaleType == 'numeric') {
+  if (config.scaleType === 'numeric') {
     // https://bl.ocks.org/OliverWS/c1f4c521cae9f379c95ace6edc1c5e30
     const legendWidth = 300;
     const x = d3.scaleLinear()
@@ -138,16 +142,17 @@ const drawMap = function(geojson, values, labels) {
       .attr('transform', 'translate(0,40)');
 
     const bars = [];
-    for (let i = 0; i < 100; i++) {
+
+    for (let i = 0; i < 100; i += 1) {
       bars.push(i);
     }
     legend.selectAll('rect')
       .data(bars)
       .enter().append('rect')
-        .attr('height', 8)
-        .attr('x', d => x(d))
-        .attr('width', legendWidth / bars.length)
-        .attr('fill', d => color(d/100.0));
+      .attr('height', 8)
+      .attr('x', d => x(d))
+      .attr('width', legendWidth / bars.length)
+      .attr('fill', d => color(d / 100.0));
 
     legend.append('text')
       .attr('class', 'caption')
@@ -157,17 +162,18 @@ const drawMap = function(geojson, values, labels) {
       .attr('text-anchor', 'start')
       .attr('font-weight', 'bold');
 
-    legend.call(d3.axisBottom(x)
+    legend.call(
+      d3.axisBottom(x)
         .tickSize(13)
-        .tickFormat(x => `${x}%`)
+        .tickFormat(tickX => `${tickX}%`)
         .tickValues(x.ticks(11)))
       .select('.domain')
-        .remove();
+      .remove();
   }
 };
 
-const processData = function(data) {
-  let [geo, sheet] = data;
+const processData = function processData(data) {
+  let [geo, sheet] = data; // eslint-disable-line prefer-const
   const values = {};
   const labels = {};
 
@@ -181,14 +187,16 @@ const processData = function(data) {
 
   sheet.result.values.forEach((row) => {
     // id, value, [label]
-    const id = row[0]
+    const id = row[0];
     let val = row[1];
+
     // if it looks like a number, try to parse it
-    if (val.match(/^[\d\.%]+$/)) {
+    if (val.match(/^[\\d\\.%]+$/)) {
       try {
         val = Number.parseFloat(val.replace('%', '')) / 100;
       } catch (e) {
         console.error('error parsing row', row);
+
         return;
       }
     }
@@ -197,19 +205,19 @@ const processData = function(data) {
       labels[id] = row[2];
     }
   });
-  debug = values;
   drawMap(geojson, values, labels);
 };
 
-/***
+/* ***
   Google auth for Sheets and Drive API
   https://developers.google.com/sheets/api/quickstart/js
-***/
+*** */
 
-const loadGoogleData = function() {
+const loadGoogleData = function loadGoogleData() {
   const docId = config.topoDocId || config.geoDocId;
+
   if (docId) {
-    //  authorized HTTP GET request to the file's resource URL and include the query parameter alt=media
+    // authorized HTTP GET request to the file's resource URL
     dataPromises[0] = gapi.client.drive.files.get({
       fileId: docId,
       alt: 'media',
@@ -227,7 +235,7 @@ const loadGoogleData = function() {
   });
 };
 
-const updateSigninStatus = function(isSignedIn) {
+const updateSigninStatus = function updateSigninStatus(isSignedIn) {
   $('.error').hide();
   if (isSignedIn) {
     $('.sign-in').hide();
@@ -241,7 +249,7 @@ const updateSigninStatus = function(isSignedIn) {
   }
 };
 
-const initGoogleClient = function() {
+const initGoogleClient = function initGoogleClient() { // eslint-disable-line no-unused-vars
   $('.sign-out').css('left', `${window.innerWidth - 80}px`);
   gapi.client.init({
     apiKey: config.googleApiKey,
@@ -250,17 +258,17 @@ const initGoogleClient = function() {
       'https://sheets.googleapis.com/$discovery/rest?version=v4',
       'https://www.googleapis.com/discovery/v1/apis/drive/v3/rest',
     ],
-    scope: 'https://www.googleapis.com/auth/spreadsheets.readonly https://www.googleapis.com/auth/drive.readonly'
-  }).then(function () {
+    scope: 'https://www.googleapis.com/auth/spreadsheets.readonly https://www.googleapis.com/auth/drive.readonly',
+  }).then(function clientInit() {
     gapi.auth2.getAuthInstance().isSignedIn.listen(updateSigninStatus);
     updateSigninStatus(gapi.auth2.getAuthInstance().isSignedIn.get());
-    $('#googleAuthorize').on('click', function() {
+    $('#googleAuthorize').on('click', function authorize() {
       gapi.auth2.getAuthInstance().signIn();
     });
-    $('#googleSignout').on('click', function() {
+    $('#googleSignout').on('click', function signout() {
       gapi.auth2.getAuthInstance().signOut();
     });
-  }).catch(function (e) {
+  }).catch(function err(e) {
     console.error(e);
     $('.error .alert').text(`error: ${e.details}`);
     $('.error').show();
