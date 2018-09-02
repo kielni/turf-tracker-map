@@ -20,8 +20,8 @@
 
       <div v-if="authorized" id="map"></div>
 
-      <div v-if="mapReady" class="refresh">
-        <button class="btn btn-success btn-sm" id="refresh" v-on:click="refresh">Refresh</button>
+      <div class="refresh">
+        <button class="btn btn-success btn-sm" id="refresh" v-on:click="refresh" :disabled="!mapReady">Refresh</button>
       </div>
 
       <div v-if="error" class="error">

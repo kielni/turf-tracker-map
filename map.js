@@ -71,7 +71,6 @@ Vue.component('google-auth', {
 const app = new Vue({ // eslint-disable-line no-unused-vars
   data: {
     error: null,
-    // auth
     authorized: false,
     // data
     dataPromises: [null, null],
@@ -97,9 +96,9 @@ const app = new Vue({ // eslint-disable-line no-unused-vars
   },
 
   methods: {
-    updateAuthStatus: function updateAuthStatus(authorized) {
-      this.authorized = authorized;
-    },
+    /* ***
+      load and process data
+    *** */
 
     loadSheetData: function loadSheetData() {
       return gapi.client.sheets.spreadsheets.values.get({
@@ -119,20 +118,14 @@ const app = new Vue({ // eslint-disable-line no-unused-vars
         });
       }
       this.dataPromises[1] = this.loadSheetData();
-      Promise.all(this.dataPromises).then(this.processData).catch((e) => {
+      Promise.all(this.dataPromises).then((data) => {
+        this.geo = this.processGeo(data[0]);
+        this.processSheet(data[1]);
+        this.drawMap();
+      }).catch((e) => {
         console.error(e);
         this.error = `error: ${e.result.error.message}`;
       });
-    },
-
-    /* ***
-      load and process data
-    *** */
-
-    processData: function processData(data) {
-      this.geo = this.processGeo(data[0]);
-      this.processSheet(data[1]);
-      this.drawMap();
     },
 
     processGeo: function processGeo(geo) {
@@ -183,9 +176,8 @@ const app = new Vue({ // eslint-disable-line no-unused-vars
       });
     },
 
-
     /* ***
-      mapping
+      draw map from geodata
     *** */
 
     drawMap: function drawMap() {
@@ -248,7 +240,6 @@ const app = new Vue({ // eslint-disable-line no-unused-vars
       if (config.scaleType === 'numeric') {
         this.numericLegend();
       }
-      this.mapReady = true;
     },
 
     updateMap: function updateMap() {
@@ -305,6 +296,7 @@ const app = new Vue({ // eslint-disable-line no-unused-vars
             return '#eee';
           });
       /* eslint-enable indent */
+      this.mapReady = true;
     },
 
     numericLegend: function numericLegend() {
@@ -347,6 +339,7 @@ const app = new Vue({ // eslint-disable-line no-unused-vars
     },
 
     refresh: function refresh() {
+      this.mapReady = false;
       // reload data from sheet, update values, and update map fill
       this.loadSheetData().then((sheet) => {
         this.processSheet(sheet);
@@ -369,17 +362,21 @@ const app = new Vue({ // eslint-disable-line no-unused-vars
       return val.replace(this.nonWord, '-');
     },
 
+    updateAuthStatus: function updateAuthStatus(authorized) {
+      this.authorized = authorized;
+    },
   },
 
   watch: {
     authorized: function authorized(isAuthorized) {
-      if (isAuthorized) {
-        // sign out button top right
-        this.$nextTick(() => {
-          $('.sign-out').css('left', `${window.innerWidth - 80}px`);
-        });
-        this.loadGoogleData();
+      if (!isAuthorized) {
+        return;
       }
+      // sign out button top right
+      this.$nextTick(() => {
+        $('.sign-out').css('left', `${window.innerWidth - 80}px`);
+      });
+      this.loadGoogleData();
     },
   },
 });
