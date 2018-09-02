@@ -6,37 +6,41 @@
 
     <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/4.0.0/css/bootstrap.min.css" integrity="sha384-Gn5384xqQ1aoWXA+058RXPxPg6fy4IWvTNh0E263XmFcJlSAwiGgFAW/dAiS6JXm" crossorigin="anonymous">
     <link rel="stylesheet" href="style.css">
+
     <script src="https://d3js.org/d3.v5.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/topojson/1.6.19/topojson.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/vue/dist/vue.js"></script>
+
     <title>Turf tracker map</title>
     <link rel="icon" type="image/png" href="logo.png">
   </head>
   <body>
-    <div id="map"></div>
-    <div class="auth sign-in">
-      <div class="alert alert-primary" role="alert">
-        <div>
-          Sign in with your Google account to view the map.
-          Third-party cookies must be enabled for Google Auth.
+    <div id="app">
+      <div v-if="authorized" id="map"></div>
+
+      <div v-if="authorized" class="auth sign-out">
+        <button class="btn btn-warning btn-sm" id="googleSignout" v-on:click="signOut">Sign out</button>
+      </div>
+      <div v-else class="auth sign-in">
+        <div class="alert alert-primary" role="alert">
+          <div>
+            Sign in with your Google account to view the map.
+            Third-party cookies must be enabled for Google Auth.
+          </div>
+          <button class="btn btn-primary btn-sm" id="googleAuthorize" v-on:click="signIn">Authorize</button>
         </div>
-        <button class="btn btn-primary btn-sm" id="googleAuthorize">Authorize</button>
+      </div>
+
+      <div v-if="error" class="error">
+        <div class="alert alert-danger"></div>
+      </div>
+      <div v-if="mapReady" class="refresh">
+        <button class="btn btn-success btn-sm" id="refresh" v-on:click="refresh">Refresh</button>
       </div>
     </div>
-    <div class="error">
-      <div class="alert alert-danger"></div>
-    </div>
-    <div class="auth sign-out">
-      <button class="btn btn-warning btn-sm" id="googleSignout">Sign out</button>
-    </div>
-    <div class="refresh">
-      <button class="btn btn-success btn-sm" id="refresh">Refresh</button>
-    </div>
     <script src="https://code.jquery.com/jquery-3.3.1.slim.min.js"></script>
+    <script src="https://apis.google.com/js/api.js"></script>
     <script src="config.js"></script>
     <script src="map.js"></script>
-    <script async defer src="https://apis.google.com/js/api.js"
-      onload="this.onload=function(){}; gapi.load('client:auth2', initGoogleClient);"
-      onreadystatechange="if (this.readyState === 'complete') this.onload()">
-    </script>
   </body>
 </html>

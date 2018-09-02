@@ -24,9 +24,6 @@ div.map-tooltip {
 .precincts path {
   vector-effect: non-scaling-stroke;
 }
-.sign-in button, .sign-out, .error, .refresh {
-  display: none;
-}
 .sign-in button {
   margin-top: 10px;
 }
