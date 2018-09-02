@@ -235,6 +235,7 @@ const drawMap = function drawMap(geojson) {
         range: config.sheetRange,
       }).then(function loadedSheet(sheet) {
         updateFeatureMapping(map.geojson, processSheet(sheet));
+        map.color.domain(colorDomain(map.geojson));
         updateMap();
       });
     });
