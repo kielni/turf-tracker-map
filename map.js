@@ -14,32 +14,16 @@ const config = Object.assign(CONFIG.default, CONFIG[configKey]);
   - draw map from geodata
 */
 
-const app = new Vue({ // eslint-disable-line no-unused-vars
-  data: {
-    // auth
-    authorized: false,
-    error: null,
-    // data
-    dataPromises: [null, null],
-    geo: {},
-    // map
-    geoGenerator: null,
-    colorScale: null,
-    mapG: null,
-    svg: null,
-    mapReady: false,
-    mapWidth: 0,
-    mapHeight: 0,
-    nonWord: new RegExp('[\W ]', 'g'), // eslint-disable-line no-useless-escape
-  },
-
-  el: '#app',
-
-  created: function created() {
-    // start loading geodata if it's a URL
-    if (config.topoURL) {
-      this.dataPromises[0] = d3.json(config.topoURL);
-    }
+/* ***
+  Google auth for Sheets and Drive API
+  https://developers.google.com/sheets/api/quickstart/js
+*** */
+Vue.component('google-auth', {
+  data: function data() {
+    return {
+      authorized: false,
+      error: null,
+    };
   },
 
   mounted: function mounted() {
@@ -47,10 +31,6 @@ const app = new Vue({ // eslint-disable-line no-unused-vars
   },
 
   methods: {
-    /* ***
-      Google auth for Sheets and Drive API
-      https://developers.google.com/sheets/api/quickstart/js
-    *** */
     initGoogleClient: function initGoogleClient() {
       // init Google API client
       gapi.client.init({
@@ -81,6 +61,44 @@ const app = new Vue({ // eslint-disable-line no-unused-vars
     updateSigninStatus: function updateSigninStatus(isSignedIn) {
       this.error = null;
       this.authorized = isSignedIn;
+      this.$emit('authorized', isSignedIn);
+    },
+  },
+
+  template: '#google-auth-template',
+});
+
+const app = new Vue({ // eslint-disable-line no-unused-vars
+  data: {
+    error: null,
+    // auth
+    authorized: false,
+    // data
+    dataPromises: [null, null],
+    geo: {},
+    // map
+    geoGenerator: null,
+    colorScale: null,
+    mapG: null,
+    svg: null,
+    mapReady: false,
+    mapWidth: 0,
+    mapHeight: 0,
+    nonWord: new RegExp('[\W ]', 'g'), // eslint-disable-line no-useless-escape
+  },
+
+  el: '#app',
+
+  created: function created() {
+    // start loading geodata if it's a URL
+    if (config.topoURL) {
+      this.dataPromises[0] = d3.json(config.topoURL);
+    }
+  },
+
+  methods: {
+    updateAuthStatus: function updateAuthStatus(authorized) {
+      this.authorized = authorized;
     },
 
     loadSheetData: function loadSheetData() {
