@@ -19,6 +19,11 @@ const CONFIG = { // eslint-disable-line no-unused-vars
       .rotate([120, 0]),
   },
 
+  categorical: {
+    sheetRange: 'map_data_ordinal!B1:C',
+    scaleType: 'ordinal',
+  },
+
   ca45: {
     sheetId: '1Flx8mqYV6Iuh0UOvKzeLVGqXjNlX9HE29ogOn9nU4c4',
     sheetRange: 'map_data!B1:C',

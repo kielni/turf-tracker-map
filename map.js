@@ -119,19 +119,24 @@ Vue.component('d3-map', {
 
       // create scale: ordinal or sequential
       if (config.scaleType === 'ordinal') {
-        // https://jnnnnn.blogspot.com/2017/02/distinct-colours-2.html
-        const colors = [
-          '#1b70fc', '#faff16', '#d50527', '#158940', '#f898fd', '#24c9d7', '#cb9b64',
-          '#866888', '#22e67a', '#e509ae', '#9dabfa', '#437e8a', '#b21bff', '#ff7b91',
-          '#94aa05', '#ac5906', '#82a68d', '#fe6616', '#7a7352', '#f9bc0f', '#b65d66',
-          '#07a2e6', '#c091ae', '#8a91a7', '#88fc07', '#ea42fe', '#9e8010', '#10b437',
-          '#c281fe', '#f92b75', '#07c99d', '#a946aa', '#bfd544', '#16977e', '#ff6ac8',
-          '#a88178', '#5776a9', '#678007', '#fa9316', '#85c070',
-        ];
-
         this.colorScale = d3.scaleOrdinal()
-          .range(colors)
           .domain(this.colorDomain(this.geo));
+
+        if (this.colorScale.domain().length > 10) {
+          this.colorScale.range(d3.schemeCategory10);
+        } else {
+          // https://jnnnnn.blogspot.com/2017/02/distinct-colours-2.html
+          const colors = [
+            '#1b70fc', '#faff16', '#d50527', '#158940', '#f898fd', '#24c9d7', '#cb9b64',
+            '#866888', '#22e67a', '#e509ae', '#9dabfa', '#437e8a', '#b21bff', '#ff7b91',
+            '#94aa05', '#ac5906', '#82a68d', '#fe6616', '#7a7352', '#f9bc0f', '#b65d66',
+            '#07a2e6', '#c091ae', '#8a91a7', '#88fc07', '#ea42fe', '#9e8010', '#10b437',
+            '#c281fe', '#f92b75', '#07c99d', '#a946aa', '#bfd544', '#16977e', '#ff6ac8',
+            '#a88178', '#5776a9', '#678007', '#fa9316', '#85c070',
+          ];
+
+          this.colorScale.range(colors);
+        }
       } else {
         // https://github.com/d3/d3-scale-chromatic
         this.colorScale = d3.scaleSequential(d3.interpolateGnBu);
@@ -402,15 +407,14 @@ const app = new Vue({ // eslint-disable-line no-unused-vars
 
     updateAuthStatus: function updateAuthStatus(authorized) {
       this.authorized = authorized;
-      if (!authorized) {
-        this.mapReady = false;
-      }
     },
   },
 
   watch: {
     authorized: function authorized(isAuthorized) {
       if (!isAuthorized) {
+        this.mapReady = false;
+
         return;
       }
       // sign out button top right
