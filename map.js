@@ -203,7 +203,7 @@ Vue.component('d3-map', {
           .on('mouseleave', () => {
             d3.event.stopPropagation();
             // reset border and hide tooltip
-            d3.selectAll('.precincts path')
+            d3.selectAll('.features path')
               .attr('stroke', '#000')
               .attr('stroke-width', 0.5);
             this.tooltip.transition()
