@@ -16,17 +16,21 @@
   </head>
   <body>
     <div id="app">
-      <google-auth v-on:authorized="updateAuthStatus">></google-auth>
+      <google-auth v-on:authorized="updateAuthStatus"></google-auth>
 
-      <div v-if="authorized" id="map"></div>
+      <d3-map v-if="authorized"
+        v-bind:geo="geo"
+        v-bind:updated="updated"
+        v-on:ready="ready">
+      </d3-map>
 
       <div class="refresh">
         <button class="btn btn-success btn-sm" id="refresh" v-on:click="refresh" :disabled="!mapReady">Refresh</button>
       </div>
-
       <div v-if="error" class="error">
         <div class="alert alert-danger">{{error}}</div>
       </div>
+
     </div>
 
     <script type="text/x-template" id="google-auth-template">

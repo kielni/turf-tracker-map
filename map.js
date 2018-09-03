@@ -68,114 +68,29 @@ Vue.component('google-auth', {
   template: '#google-auth-template',
 });
 
-const app = new Vue({ // eslint-disable-line no-unused-vars
-  data: {
-    error: null,
-    authorized: false,
-    // data
-    dataPromises: [null, null],
-    geo: {},
-    // map
-    geoGenerator: null,
-    colorScale: null,
-    mapG: null,
-    svg: null,
-    mapReady: false,
-    mapWidth: 0,
-    mapHeight: 0,
-    nonWord: new RegExp('[\W ]', 'g'), // eslint-disable-line no-useless-escape
+/* ***
+  draw a map from geojson data
+*** */
+Vue.component('d3-map', {
+  props: {
+    geo: Object,
+    updated: Number,
   },
 
-  el: '#app',
+  template: '<div id="map"></div>',
 
-  created: function created() {
-    // start loading geodata if it's a URL
-    if (config.topoURL) {
-      this.dataPromises[0] = d3.json(config.topoURL);
-    }
+  data: function data() {
+    return {
+      geoGenerator: null,
+      colorScale: null,
+      svg: null,
+      mapWidth: 0,
+      mapHeight: 0,
+      nonWord: new RegExp('[\W ]', 'g'), // eslint-disable-line no-useless-escape
+    };
   },
 
   methods: {
-    /* ***
-      load and process data
-    *** */
-
-    loadSheetData: function loadSheetData() {
-      return gapi.client.sheets.spreadsheets.values.get({
-        spreadsheetId: config.sheetId,
-        range: config.sheetRange,
-      });
-    },
-
-    loadGoogleData: function loadGoogleData() {
-      const docId = config.topoDocId || config.geoDocId;
-
-      if (docId) {
-        // authorized HTTP GET request to the file's resource URL
-        this.dataPromises[0] = gapi.client.drive.files.get({
-          fileId: docId,
-          alt: 'media',
-        });
-      }
-      this.dataPromises[1] = this.loadSheetData();
-      Promise.all(this.dataPromises).then((data) => {
-        this.geo = this.processGeo(data[0]);
-        this.processSheet(data[1]);
-        this.drawMap();
-      }).catch((e) => {
-        console.error(e);
-        this.error = `error: ${e.result.error.message}`;
-      });
-    },
-
-    processGeo: function processGeo(geo) {
-      // parse string data from Google Drive API
-      const data = (config.topoDocId || config.geoDocId) ? JSON.parse(geo.body) : geo;
-
-      // geoDocId is already geoJSON
-      // otherwise convert topoJSON to geoJSON
-      return config.geoDocId ? data : topojson.feature(data, data.objects[config.topoObjects]);
-    },
-
-    processSheet: function processSheet(sheet) {
-      const mapping = {};
-
-      // parse sheet data into map: { id: { value: x, label: y} }
-      sheet.result.values.forEach((row) => {
-        // id, value, [label]
-        const id = `${row[0]}`; // cast to string
-        let val = row[1];
-
-        // if it looks like a number, try to parse it
-        if (val.match(/^[\d\.%]+$/)) { // eslint-disable-line no-useless-escape
-          try {
-            val = Number.parseFloat(val.replace('%', '')) / 100;
-          } catch (e) {
-            console.error('error parsing row', row);
-
-            return;
-          }
-        }
-        mapping[id] = { value: val };
-        if (row.length > 2) {
-          mapping[id].label = row[2];
-        }
-      });
-
-      // add value and label to geo features
-      this.geo.features.forEach(function feature(f) {
-        const key = f.properties[config.featureKey];
-
-        if (key in mapping) {
-          f.properties.ttValue = mapping[key].value;
-          f.properties.ttLabel = mapping[key].label || key;
-        } else {
-          f.properties.ttValue = null;
-          f.properties.ttLabel = key;
-        }
-      });
-    },
-
     /* ***
       draw map from geodata
     *** */
@@ -228,8 +143,8 @@ const app = new Vue({ // eslint-disable-line no-unused-vars
         .attr('width', this.mapWidth);
 
       this.svg.call(zoom);
-      this.mapG = this.svg.append('g')
-        .attr('class', 'precincts');
+      this.svg.append('g')
+        .attr('class', 'features');
       this.tooltip = d3.select('#map').append('div')
         .attr('class', 'map-tooltip')
         .style('opacity', 0);
@@ -243,8 +158,12 @@ const app = new Vue({ // eslint-disable-line no-unused-vars
     },
 
     updateMap: function updateMap() {
-      const features = this.mapG.selectAll('path')
+      const features = this.svg.select('g.features').selectAll('path')
         .data(this.geo.features, d => d.properties[config.featureKey]);
+
+      if (config.scaleType === 'ordinal') {
+        this.colorScale.domain(this.colorDomain());
+      }
 
       /* eslint-disable indent */ // for d3 convention
       features.enter().append('path')
@@ -296,7 +215,7 @@ const app = new Vue({ // eslint-disable-line no-unused-vars
             return '#eee';
           });
       /* eslint-enable indent */
-      this.mapReady = true;
+      this.$emit('ready', true);
     },
 
     numericLegend: function numericLegend() {
@@ -338,18 +257,6 @@ const app = new Vue({ // eslint-disable-line no-unused-vars
         .remove();
     },
 
-    refresh: function refresh() {
-      this.mapReady = false;
-      // reload data from sheet, update values, and update map fill
-      this.loadSheetData().then((sheet) => {
-        this.processSheet(sheet);
-        if (config.scaleType === 'ordinal') {
-          this.colorScale.domain(this.colorDomain());
-        }
-        this.updateMap();
-      });
-    },
-
     colorDomain: function colorDomain() {
       // get unique values for categorical scale domain
       const values = this.geo.features.map(f => f.properties.ttValue);
@@ -361,9 +268,143 @@ const app = new Vue({ // eslint-disable-line no-unused-vars
     cssId: function cssId(val) {
       return val.replace(this.nonWord, '-');
     },
+  },
+
+  watch: {
+    updated: function updated() {
+      // let d3 handle change detection in geodata
+      console.log('d3-map geo updated');
+      if (this.svg) {
+        this.updateMap();
+      } else {
+        this.drawMap();
+      }
+    },
+  },
+});
+
+const app = new Vue({ // eslint-disable-line no-unused-vars
+  data: {
+    error: null,
+    authorized: false,
+    mapReady: false,
+    dataPromises: [null, null], // geo, sheet
+    geo: {},
+    updated: 0,
+  },
+
+  el: '#app',
+
+  created: function created() {
+    // start loading geodata if it's a URL
+    if (config.topoURL) {
+      this.dataPromises[0] = d3.json(config.topoURL);
+    }
+  },
+
+  methods: {
+    /* ***
+      load and process data
+    *** */
+
+    loadSheetData: function loadSheetData() {
+      return gapi.client.sheets.spreadsheets.values.get({
+        spreadsheetId: config.sheetId,
+        range: config.sheetRange,
+      });
+    },
+
+    loadGoogleData: function loadGoogleData() {
+      const docId = config.topoDocId || config.geoDocId;
+
+      if (docId) {
+        // authorized HTTP GET request to the file's resource URL
+        this.dataPromises[0] = gapi.client.drive.files.get({
+          fileId: docId,
+          alt: 'media',
+        });
+      }
+      this.dataPromises[1] = this.loadSheetData();
+      Promise.all(this.dataPromises).then((data) => {
+        this.geo = this.processGeo(data[0]);
+        this.geo.features = this.processSheet(data[1]);
+        this.updated = (new Date()).getTime();
+      }).catch((e) => {
+        console.error(e);
+        this.error = `error: ${e.result.error.message}`;
+      });
+    },
+
+    processGeo: function processGeo(geo) {
+      // parse string data from Google Drive API
+      const data = (config.topoDocId || config.geoDocId) ? JSON.parse(geo.body) : geo;
+
+      // geoDocId is already geoJSON
+      // otherwise convert topoJSON to geoJSON
+      return config.geoDocId ? data : topojson.feature(data, data.objects[config.topoObjects]);
+    },
+
+    processSheet: function processSheet(sheet) {
+      const mapping = {};
+
+      // parse sheet data into map: { id: { value: x, label: y} }
+      sheet.result.values.forEach((row) => {
+        // id, value, [label]
+        const id = `${row[0]}`; // cast to string
+        let val = row[1];
+
+        // if it looks like a number, try to parse it
+        if (val.match(/^[\d\.%]+$/)) { // eslint-disable-line no-useless-escape
+          try {
+            val = Number.parseFloat(val.replace('%', '')) / 100;
+          } catch (e) {
+            console.error('error parsing row', row);
+
+            return;
+          }
+        }
+        mapping[id] = { value: val };
+        if (row.length > 2) {
+          mapping[id].label = row[2];
+        }
+      });
+
+      // add value and label to geo features
+      return this.geo.features.map(function feature(f) {
+        const key = f.properties[config.featureKey];
+        let val = null;
+        let label = key;
+
+        if (key in mapping) {
+          val = mapping[key].value;
+          label = mapping[key].label || key;
+        }
+        f.properties.ttValue = val;
+        f.properties.ttLabel = label;
+
+        return f;
+      });
+    },
+
+    refresh: function refresh() {
+      // reload data from sheet, update values, and update map fill
+      this.refreshable = false;
+      this.loadSheetData().then((sheet) => {
+        this.geo.features = this.processSheet(sheet);
+        this.updated = (new Date()).getTime();
+        this.refreshable = true;
+      });
+    },
+
+    ready: function ready(isReady) {
+      this.mapReady = isReady;
+    },
 
     updateAuthStatus: function updateAuthStatus(authorized) {
       this.authorized = authorized;
+      if (!authorized) {
+        this.mapReady = false;
+      }
     },
   },
 
