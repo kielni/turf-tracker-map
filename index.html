@@ -24,7 +24,7 @@
         v-on:ready="ready">
       </d3-map>
 
-      <div class="refresh">
+      <div class="refresh" v-if="authorized">
         <button class="btn btn-success btn-sm" id="refresh" v-on:click="refresh" :disabled="!mapReady">Refresh</button>
       </div>
       <div v-if="error" class="error">
