@@ -9,7 +9,7 @@ https://turf-tracker-map.s3.amazonaws.com/index.html
 
 <img src="map.png" width="800">
 
-Make your own: you'll need geo data and a Google Sheet with values for the geo data features.
+To make your own, you'll need geo data and a Google Sheet with values for the geo data features.
 
 ## prep geo data
 
@@ -69,3 +69,10 @@ Set `projection` to a [d3 projection object](https://github.com/d3/d3-geo-projec
   - for California data, use default [California Albers](https://bl.ocks.org/mbostock/5562380)
   - if data is already projected (coordinates in TopoJSON are not lat/lng pairs), use `d3.geoIdentity`
   - if map appears upside down, add `.reflectY(true)`
+
+## test
+
+Run `python -m SimpleHTTPServer`
+
+Load localhost:8000/index.html?v=_configKey_
+
