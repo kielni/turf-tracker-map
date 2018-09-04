@@ -43,3 +43,8 @@ div.map-tooltip {
 .error {
   margin-top: 10px;
 }
+
+.attribution {
+  font-size: 10px;
+  position: absolute;
+}

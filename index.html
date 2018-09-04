@@ -27,10 +27,13 @@
       <div class="refresh" v-if="authorized">
         <button class="btn btn-success btn-sm" id="refresh" v-on:click="refresh" :disabled="!mapReady">Refresh</button>
       </div>
-      <div v-if="error" class="error">
+      <div v-cloak v-if="error" class="error">
         <div class="alert alert-danger">{{error}}</div>
       </div>
 
+      <div class="attribution">
+        <a href="https://github.com/kielni/turf-tracker-map" target="_blank">contact / source</a>
+      </div>
     </div>
 
     <script type="text/x-template" id="google-auth-template">
